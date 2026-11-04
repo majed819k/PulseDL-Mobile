@@ -1,0 +1,56 @@
+name: PulseDL Mobile — Cloud APK Builder
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-android-apk:
+    name: Compile Native ARM64 / Universal APKs
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout PulseDL Mobile Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17 (Eclipse Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle 8.9 with Caching
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+          cache-read-only: false
+
+      - name: Compile Debug & Release Split APKs (arm64-v8a, armeabi-v7a, x86_64, universal)
+        run: |
+          gradle assembleDebug assembleRelease --stacktrace --no-daemon
+
+      - name: Upload PulseDL Debug APKs Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PulseDL-Mobile-Debug-APKs
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload PulseDL Release Signed APKs Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PulseDL-Mobile-Release-APKs
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: warn
+          retention-days: 30
